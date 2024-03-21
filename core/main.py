@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
 
-experiment = 10 ** 6
+experiment = 10 ** 5
 
 
 # enviromental_interactions
@@ -65,51 +65,58 @@ def model(sigma_resident, sigma_mutant, enviroment_interactions, enviroment_shif
 
             elif beta == 0:
                 break
+
+            if step > (10 ** 3):
+                break
+
     time = np.array(time)
     # print('wins:', win)
     # print(time)
     # print('mean', np.mean(time))
 
-    return np.mean(time)
+    return win, np.mean(time)
 
 
 def heat_map_loc():
     start = time.time()
-    sigma_A = np.round(np.arange(-1, 1, 0.05), 2)
-    sigma_B = np.round(np.arange(-1, 1, 0.05), 2)
+    sigma_A = np.round(np.arange(-1, 1, 0.25), 2)
+    sigma_B = np.round(np.arange(-1, 1, 0.25), 2)
     T = np.array([2])
     enviroment_interactions = enviroment(T[0], 16)
-    print(enviroment_interactions)
+    # print(enviroment_interactions)
     rou_A = np.zeros((len(sigma_A), len(sigma_B)))
     rou_B = np.zeros((len(sigma_A), len(sigma_B)))
+    print(len(sigma_B))
     random_A = np.random.randint(0, 15, experiment)
     random_B = random_A + 1
     for j in range(len(T)):
         print(T[j])
         for k in range(len(sigma_B)):
+            print(k)
             for i in range((len(sigma_A))):
-                rou_B[k, i], _ = model(sigma_A[i], sigma_B[k], enviroment_interactions, enviroment_interactions, 1, 1.1,
+                rou_B[k, i], _ = model(sigma_A[i], sigma_B[k], enviroment_interactions, enviroment_interactions, 1.1, 1,
                                        16, random_A, random_B)
-                rou_A[k, i], _ = model(sigma_B[k], sigma_A[i], enviroment_interactions, enviroment_interactions, 1.1, 1,
+                rou_A[k, i], _ = model(sigma_B[k], sigma_A[i], enviroment_interactions, enviroment_interactions, 1, 1.1,
                                        16, random_A, random_B)
-    delta = (rou_B - rou_A).T
+
+    delta = (rou_A - rou_B).T
+    df = pd.DataFrame(delta)
+    df.to_csv('data_time.csv', index=False)
     maximum = 1
-    np.save('fix_2', delta)
+    # np.save('fix_2', delta)
     # fix2 = np.load('fix_2.npy')
-    plt.colorbar(plt.imshow(delta, vmax=maximum, vmin=-maximum, cmap='seismic', interpolation='bicubic'))
-    values = [0]
-    fit = plt.contour(delta, values, linestyles="dashed")
+    # plt.colorbar(plt.imshow(delta, vmax=0.5, vmin=0, cmap='seismic', interpolation='bicubic'))
+    values = np.equal.outer(rou_A, rou_B)
+    levels = [0]
+    print(values)
+    print(levels)
+    fit = plt.contour(delta, values, levels=levels, linestyles="dashed")
     # fit2 = plt.contour(fix2, values, linestyles="solid")
     plt.clabel(fit, inline=1, fontsize=10)
     # plt.clabel(fit2, inline=1, fontsize=10)
     xticks = plt.gca().get_xticks()
     plt.xticks(xticks[1:] - 0.5, xticks[1:] / len(sigma_A) * 2 - 1)
     plt.yticks(xticks[1:] - 0.5, xticks[1:] / len(sigma_B) * 2 - 1)
-    # plt.xticks(np.arange(0, 40, 5), sigma_A[::5])
-    # plt.yticks(np.arange(0, 40, 5), sigma_B[::5])
-    # plt.counter
-    # np.geometric(sum(fitness_border)/(2*sum(fitness)))
-    # np.roll(enviroment_interactions, m)
     plt.title('T = 2')
     plt.xlabel('sigma_A')
     plt.ylabel('sigma_B')
@@ -129,8 +136,8 @@ def fixation_time():
             random_A = np.random.randint(0, radius[k] - 1, size=experiment)
             random_B = random_A + 1
             enviroment_interactions = enviroment(radius[k], radius[k])
-            rou_A[i, k] = model(-sigma[i], sigma[i], enviroment_interactions, enviroment_interactions, 1, 1,
-                                radius[k], random_A, random_B)
+            _, rou_A[i, k] = model(-sigma[i], sigma[i], enviroment_interactions, enviroment_interactions, 1, 1,
+                                   radius[k], random_A, random_B)
     df = pd.DataFrame(rou_A)
     df.to_csv('data_time.csv', index=False)
 
@@ -256,31 +263,8 @@ def move_in_vertical():
     T = np.array([2, 4, 8, 16])
     random_A = np.random.randint(0, 15, experiment)
     random_B = random_A + 1
-    color = ['blue', 'orange', 'green', 'red']
-    # for j in range(len(T)):
-    #     print(T[j])
-    #     enviroment_interactions =
-    #     rou_A = np.zeros((len(sigma)))
-    #     failure = np.zeros((len(sigma)))
-    #     SE = np.zeros(len(sigma))
-    #     for i in range(len(sigma)):
-    #         print(sigma[i])
-    #         rou_A[i], _ = model(-sigma[i], sigma[i], enviroment(T[j], 16), enviroment(T[j], 16), 1, 1.1, 16,
-    #                             random_A, random_B)
-    #         failure[i] = 1 - rou_A[i]
-    #         SE[i] = 2 * 1.96 * (np.sqrt((rou_A[i] * failure[i]) / experiment))
-    #
-    #     plt.plot(sigma, rou_A, linestyle='dashed')
-    #     plt.errorbar(sigma, rou_A, yerr=SE, fmt='o', color=color[j])
     df = [[model(-sigma[i], sigma[i], enviroment(T[j], 16), enviroment(T[j], 16), 1.1, 1, 16,
                  random_A, random_B) for i in range(len(sigma))] for j in range(len(T))]
-    # failure = np.zeros((len(sigma)))
-    # SE = np.zeros(len(sigma))
-    # failure[i] = 1 - df[i]
-    # SE[i] = 2 * 1.96 * (np.sqrt((df[i] * failure[i]) / experiment))
-    # failure[i] = 1 - df[i]
-    # plt.plot(sigma, rou_A, linestyle='dashed')
-    # plt.errorbar(sigma, rou_A, yerr=SE, fmt='o', color=color[j])
 
     df = pd.DataFrame(df)
     df.to_csv('data.csv', index=False)
