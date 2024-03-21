@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 
 
-experiment = 10 ** 7
+experiment = 10 ** 8
 
 
 # enviromental_interactions
