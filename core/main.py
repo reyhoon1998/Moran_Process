@@ -5,8 +5,7 @@ from matplotlib import pyplot as plt
 import pandas as pd
 from tqdm import tqdm
 
-
-experiment = 10 ** 8
+experiment = 10 ** 3
 
 
 # enviromental_interactions
@@ -24,6 +23,7 @@ def model(sigma_resident, sigma_mutant, enviroment_interactions, enviroment_shif
           mean_fitness_mutant, radius, random_A, random_B):
     win = 0
     time = []
+    number_of_experiment_offset = 0
     tau = 0
     for i in range(experiment):
         beta = 1
@@ -68,19 +68,24 @@ def model(sigma_resident, sigma_mutant, enviroment_interactions, enviroment_shif
             elif beta == 0:
                 break
 
+            if sigma_mutant == sigma_resident:
+                if step > (10 ** 5):
+                    number_of_experiment_offset += 1
+                    break
+
     time = np.array(time)
     # print('wins:', win)
     # print(time)
     # print('mean', np.mean(time))
 
-    return win, np.mean(time)
+    return win / (experiment - number_of_experiment_offset), np.mean(time)
 
 
 def heat_map_loc():
     start = time.time()
-    sigma_A = np.round(np.arange(-1, 1, 0.25), 2)
-    sigma_B = np.round(np.arange(-1, 1, 0.25), 2)
-    T = np.array([16])
+    sigma_A = np.round(np.arange(-1, 1, 0.05), 2)
+    sigma_B = np.round(np.arange(-1, 1, 0.05), 2)
+    T = np.array([2])
     enviroment_interactions = enviroment(T[0], 16)
     # print(enviroment_interactions)
     rou_A = np.zeros((len(sigma_A), len(sigma_B)))
@@ -93,24 +98,25 @@ def heat_map_loc():
         for k in range(len(sigma_B)):
             print(k)
             for i in tqdm(range((len(sigma_A)))):
-                if i == [1,3,5,7]:
-                    rou_B[k, i], _ = model(sigma_A[i], sigma_B[k], enviroment_interactions, enviroment_interactions, 1, 1,
-                                           16, random_A, random_B)
-                    rou_A[k, i], _ = model(sigma_B[k], sigma_A[i], enviroment_interactions, enviroment_interactions, 1, 1,
-                                           16, random_A, random_B)
+                rou_B[k, i], _ = model(sigma_A[i], sigma_B[k], enviroment_interactions, enviroment_interactions, 1, 1,
+                                       16, random_A, random_B)
+                rou_A[k, i], _ = model(sigma_B[k], sigma_A[i], enviroment_interactions, enviroment_interactions, 1, 1,
+                                       16, random_A, random_B)
 
     delta = (rou_A - rou_B).T
-    df = pd.DataFrame(delta)
-    df.to_csv('data_time.csv', index=False)
+    # df = pd.DataFrame(delta)
+    # df.to_csv('data_time.csv', index=False)
     maximum = 1
     np.save('fix_2', delta)
     # fix2 = np.load('fix_2.npy')
-    plt.colorbar(plt.imshow(delta, vmax=0.5, vmin=0, cmap='seismic', interpolation='bicubic'))
-    values = [0]
-    fit = plt.contour(delta, values, linestyles="dashed")
-    # fit2 = plt.contour(fix2, values, linestyles="solid")
+    plt.colorbar(plt.imshow(delta, vmax=maximum, vmin=-maximum, cmap='seismic', interpolation='bicubic'))
+    values = np.equal.outer(rou_A, 1 / 16)
+    values2 = np.equal.outer(rou_A, rou_B)
+    l = np.round(np.arange(-1, 1, 0.5), 2)
+    fit = plt.contour(delta, values, levels=l[::2], linestyles="dashed", colors='blue')
+    fit2 = plt.contour(delta, values2, levels=l[::2], linestyles="dashed", colors='red')
     plt.clabel(fit, inline=1, fontsize=10)
-    # plt.clabel(fit2, inline=1, fontsize=10)
+    plt.clabel(fit2, inline=1, fontsize=2)
     xticks = plt.gca().get_xticks()
     plt.xticks(xticks[1:] - 0.5, xticks[1:] / len(sigma_A) * 2 - 1)
     plt.yticks(xticks[1:] - 0.5, xticks[1:] / len(sigma_B) * 2 - 1)
@@ -294,3 +300,5 @@ def move_in_vertical():
     end = time.time()
     print(end - start)
 
+
+heat_map_loc()
